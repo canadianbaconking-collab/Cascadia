@@ -18,8 +18,19 @@ data class GameState(
     val aimAngleRad: Float = 0f,
     val roomsCleared: Int = 0,
     val goalsCleared: Int = 0,
-    val paintAvailable: Boolean = false,
-    val shotsFired: Int = 0
+    val paintCharges: Int = 0,
+    val shotsFired: Int = 0,
+    val combo: Int = 0,
+    val bestCombo: Int = 0,
+    val whiffStreak: Int = 0,
+    val rerollsLeft: Int = 1,
+    val runTicks: Int = 0,
+    val ttffTicks: Int? = null,
+    val replayPrompt: Boolean = false,
+    val lossReason: String? = null,
+    val goalsAtRoomStart: Int = 0,
+    val cycle: Int = 0,
+    val candidateBoard: List<String> = listOf("2 features", "1 polish", "complexity<=7", "risk<=7")
 ) {
     companion object {
         fun new(seed: Long): GameState {

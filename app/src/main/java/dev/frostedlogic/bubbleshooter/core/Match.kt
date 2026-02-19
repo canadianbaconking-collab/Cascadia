@@ -2,7 +2,10 @@ package dev.frostedlogic.bubbleshooter.core
 
 object Match {
     fun findCluster(grid: GridState, startIndex: Int, matchCode: Int): IntArray {
-        if (startIndex !in grid.cells.indices || grid.cells[startIndex] != matchCode) return intArrayOf()
+        if (startIndex !in grid.cells.indices) return intArrayOf()
+        val start = grid.cells[startIndex]
+        if (start == Grid.EMPTY || start == Grid.STONE) return intArrayOf()
+        val target = if (start == Grid.WILD) matchCode else start
         val seen = BooleanArray(grid.cells.size)
         val stack = ArrayDeque<Int>()
         val out = ArrayList<Int>()
@@ -11,12 +14,14 @@ object Match {
             val idx = stack.removeLast()
             if (seen[idx]) continue
             seen[idx] = true
-            if (grid.cells[idx] != matchCode) continue
+            val code = grid.cells[idx]
+            val matches = code == target || code == Grid.WILD || (target == Grid.WILD && Grid.isColor(code))
+            if (!matches) continue
             out += idx
             val r = idx / grid.cols
             val c = idx % grid.cols
             Grid.neighbors(r, c, grid.rows, grid.cols, true).forEach { n ->
-                if (!seen[n]) stack.add(n)
+                if (!seen[n] && grid.cells[n] != Grid.STONE) stack.add(n)
             }
         }
         return out.toIntArray()
