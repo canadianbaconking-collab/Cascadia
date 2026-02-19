@@ -2,7 +2,7 @@ package dev.frostedlogic.bubbleshooter.core
 
 data class GridState(val rows: Int, val cols: Int, val cells: IntArray, val topAnchored: Boolean = true)
 
-enum class BubbleColor { Red, Green, Blue, Goal }
+enum class BubbleColor { Red, Green, Blue, Yellow, Purple, Goal, Wild }
 
 data class Bubble(val color: BubbleColor, val isGoal: Boolean = false)
 
@@ -12,6 +12,10 @@ object Grid {
     const val GREEN = 2
     const val BLUE = 3
     const val GOAL = 4
+    const val YELLOW = 5
+    const val PURPLE = 6
+    const val WILD = 7
+    const val STONE = 8
 
     fun empty(rows: Int, cols: Int): GridState = GridState(rows, cols, IntArray(rows * cols) { EMPTY })
 
@@ -61,6 +65,11 @@ object Grid {
         BubbleColor.Red -> RED
         BubbleColor.Green -> GREEN
         BubbleColor.Blue -> BLUE
+        BubbleColor.Yellow -> YELLOW
+        BubbleColor.Purple -> PURPLE
         BubbleColor.Goal -> GOAL
+        BubbleColor.Wild -> WILD
     }
+
+    fun isColor(code: Int): Boolean = code in RED..PURPLE || code == WILD
 }
