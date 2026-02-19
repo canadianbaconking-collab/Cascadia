@@ -1,10 +1,5 @@
 package dev.frostedlogic.bubbleshooter.ui
 
 import androidx.compose.ui.geometry.Offset
-import kotlin.math.atan2
 
-fun computeAimAngle(origin: Offset, pointer: Offset): Float {
-    val dx = pointer.x - origin.x
-    val dy = origin.y - pointer.y
-    return atan2(dx, dy)
-}
+fun normalizeX(position: Offset, width: Float): Float = if (width <= 0f) 0.5f else (position.x / width).coerceIn(0f, 1f)

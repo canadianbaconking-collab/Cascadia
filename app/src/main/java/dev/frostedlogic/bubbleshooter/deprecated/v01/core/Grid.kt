@@ -1,4 +1,4 @@
-package dev.frostedlogic.bubbleshooter.core
+package dev.frostedlogic.bubbleshooter.deprecated.v01.core
 
 data class GridState(val rows: Int, val cols: Int, val cells: IntArray, val topAnchored: Boolean = true)
 

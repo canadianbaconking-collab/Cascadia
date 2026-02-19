@@ -1,46 +1,28 @@
 package dev.frostedlogic.bubbleshooter.core
 
-enum class BoonId { ShotsPlus, Sights, BombShot, Paint, Sticky, Magnet, ChainPop, LuckyWild }
+enum class BoonId { RapidFire, Ice, Shield }
 
-data class ChoiceState(val options: List<BoonId>, val canReroll: Boolean = false)
+data class BoonChoice(val options: List<BoonId>)
 
 object Boons {
-    fun offer(rng: RngState, owned: Set<BoonId>, rerollsLeft: Int = 0): Pair<RngState, ChoiceState> {
-        var state = rng
-        val pool = BoonId.entries.filterNot { owned.contains(it) }.ifEmpty { BoonId.entries }
+    fun offer(rng: RngState): Pair<RngState, BoonChoice> {
+        var next = rng
+        val pool = BoonId.entries.toMutableList()
         val picks = mutableListOf<BoonId>()
-        while (picks.size < 3 && picks.size < pool.size) {
-            val (next, idx) = Rng.nextInt(state, pool.size)
-            state = next
-            val choice = pool[idx]
-            if (!picks.contains(choice)) picks += choice
+        repeat(3) {
+            val (r, idx) = Rng.nextInt(next, pool.size)
+            next = r
+            picks += pool.removeAt(idx)
         }
-        return state to ChoiceState(options = picks, canReroll = rerollsLeft > 0)
+        return next to BoonChoice(picks)
     }
 
-    fun applyOnRoomStart(state: GameState): GameState {
-        var updated = state
-        if (state.boons.contains(BoonId.ShotsPlus)) updated = updated.copy(shotsLeft = updated.shotsLeft + 2)
-        if (state.boons.contains(BoonId.Paint)) updated = updated.copy(paintCharges = 1)
-        return updated
-    }
-
-    fun applyOnShoot(state: GameState): GameState {
-        var out = state
-        if (state.boons.contains(BoonId.LuckyWild) && state.shotsFired % 4 == 0) {
-            out = out.copy(nextBubble = Bubble(BubbleColor.Wild))
+    fun apply(state: GameState, boon: BoonId): GameState = when (boon) {
+        BoonId.RapidFire -> state.copy(boons = state.boons + boon, shootCooldown = 0.2f)
+        BoonId.Ice -> state.copy(boons = state.boons + boon)
+        BoonId.Shield -> {
+            val hp = (state.player.hp + 1).coerceAtMost(state.player.maxHp)
+            state.copy(boons = state.boons + boon, player = state.player.copy(hp = hp, shieldCharges = state.player.shieldCharges + 1))
         }
-        return out
-    }
-
-    fun description(boon: BoonId): String = when (boon) {
-        BoonId.ShotsPlus -> "+2 shots each room"
-        BoonId.Sights -> "Shows longer trajectory"
-        BoonId.BombShot -> "Every 5th shot explodes"
-        BoonId.Paint -> "1x per room recolor current bubble"
-        BoonId.Sticky -> "Convert a neighbor to your color"
-        BoonId.Magnet -> "Small aim assist toward center"
-        BoonId.ChainPop -> "Pop size-2 clusters after main pop"
-        BoonId.LuckyWild -> "Periodic wild bubbles"
     }
 }

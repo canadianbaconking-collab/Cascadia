@@ -3,6 +3,7 @@ package dev.frostedlogic.bubbleshooter.ui
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,106 +20,73 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
-import dev.frostedlogic.bubbleshooter.core.Boons
 import dev.frostedlogic.bubbleshooter.core.GameAction
 import dev.frostedlogic.bubbleshooter.core.GameReducer
 import dev.frostedlogic.bubbleshooter.core.GameState
 import dev.frostedlogic.bubbleshooter.core.Phase
-import dev.frostedlogic.bubbleshooter.core.Rooms
-import kotlinx.coroutines.delay
 
 @Composable
 fun GameScreen() {
     var state by remember { mutableStateOf(GameState.new(seed = 1337L)) }
 
-    LaunchedEffect(state.phase) {
-        while (state.phase == Phase.Playing) {
-            delay(100L)
-            state = GameReducer.reduce(state, GameAction.Tick)
+    LaunchedEffect(Unit) {
+        var lastNanos = 0L
+        var accumulator = 0f
+        while (true) {
+            withFrameNanos { now ->
+                if (lastNanos == 0L) lastNanos = now
+                val frameDt = ((now - lastNanos).coerceAtMost(50_000_000L)) / 1_000_000_000f
+                lastNanos = now
+                accumulator += frameDt
+                while (accumulator >= dev.frostedlogic.bubbleshooter.core.World.DT) {
+                    state = GameReducer.reduce(state, GameAction.Tick(dev.frostedlogic.bubbleshooter.core.World.DT))
+                    accumulator -= dev.frostedlogic.bubbleshooter.core.World.DT
+                }
+            }
         }
     }
 
     MaterialTheme {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFF121212))
-                .padding(8.dp)
+            modifier = Modifier.fillMaxSize().background(Color(0xFF0B1020)).padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text("Seed ${state.seed} • Room ${state.roomIndex} • Cycle ${state.cycle}", color = Color.White)
-            Text("Shots ${state.shotsLeft} • Goals ${Rooms.countGoals(state.grid)} • Combo ${state.combo}", color = Color.White)
-            Text("Best Combo ${state.bestCombo} • TTFF ${state.ttffTicks?.times(100) ?: -1}ms", color = Color.White)
-            if (state.boss.fogActive) {
-                Text("Boss Fog Active${if (state.boss.tremorActive) " + Tremor" else ""}", color = Color(0xFFFFB74D))
-            }
+            Text("Seed ${state.seed}  Room ${state.roomIndex}/8", color = Color.White)
+            Text("HP ${state.player.hp}  Balls ${state.balls.size}  Boons ${state.boons.joinToString()}", color = Color.White)
+            if (state.roomIndex == 8 && state.phase == Phase.Playing) Text("Boss: Tremor", color = Color(0xFFFFB86B))
+
             Canvas(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(500.dp)
+                    .height(520.dp)
                     .pointerInput(state.phase) {
                         detectDragGestures(
-                            onDragStart = { pos ->
-                                val origin = Offset(size.width / 2f, size.height)
-                                val angle = computeAimAngle(origin, pos)
-                                state = GameReducer.reduce(state, GameAction.AimChanged(angle))
-                            },
-                            onDrag = { change, _ ->
-                                val origin = Offset(size.width / 2f, size.height)
-                                val angle = computeAimAngle(origin, change.position)
-                                state = GameReducer.reduce(state, GameAction.AimChanged(angle))
-                            },
-                            onDragEnd = {
-                                state = GameReducer.reduce(state, GameAction.Shoot)
-                            }
+                            onDragStart = { pos -> state = GameReducer.reduce(state, GameAction.MovePlayer(normalizeX(pos, size.width))) },
+                            onDrag = { change, _ -> state = GameReducer.reduce(state, GameAction.MovePlayer(normalizeX(change.position, size.width))) }
                         )
                     }
-            ) {
-                renderGame(this, state, state.aimAngleRad)
-            }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (state.paintCharges > 0) {
-                    Button(onClick = { state = GameReducer.reduce(state, GameAction.UsePaint) }) {
-                        Text("Paint (${state.paintCharges})")
+                    .pointerInput(state.phase) {
+                        detectTapGestures { state = GameReducer.reduce(state, GameAction.Shoot) }
                     }
-                }
-            }
+            ) { renderGame(this, state) }
 
             if (state.phase == Phase.ChoosingBoon) {
-                Text("Choose a boon", color = Color.White)
+                Text("Pick a boon", color = Color.White)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    state.pendingChoice?.options.orEmpty().forEach { boon ->
-                        Button(onClick = { state = GameReducer.reduce(state, GameAction.PickBoon(boon)) }) {
-                            Text("${boon.name}: ${Boons.description(boon)}")
-                        }
-                    }
-                }
-                if (state.pendingChoice?.canReroll == true) {
-                    Button(onClick = { state = GameReducer.reduce(state, GameAction.RerollBoons) }) {
-                        Text("Reroll (${state.rerollsLeft})")
+                    state.offeredBoons.forEach { boon ->
+                        Button(onClick = { state = GameReducer.reduce(state, GameAction.PickBoon(boon)) }) { Text(boon.name) }
                     }
                 }
             }
 
             if (state.phase == Phase.WonRun || state.phase == Phase.LostRun) {
-                Text(
-                    if (state.phase == Phase.WonRun) "Run Won!" else "Run Lost",
-                    color = Color.White,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-                Text("Rooms cleared ${state.roomsCleared} • Goals cleared ${state.goalsCleared}", color = Color.White)
-                Text("Boons: ${state.boons.joinToString()}", color = Color.White)
-                state.lossReason?.let { Text("Loss reason: $it", color = Color(0xFFFF8A80)) }
-                if (state.replayPrompt) Text("Replay pull: quick retry ready", color = Color(0xFFB9F6CA))
-                Text("Candidate board: ${state.candidateBoard.joinToString()}", color = Color(0xFFB0BEC5))
-                Button(onClick = { state = GameReducer.reduce(state, GameAction.NewRun(state.seed + 1)) }) {
-                    Text("New Seeded Run")
-                }
+                Text(if (state.phase == Phase.WonRun) "Run Won" else "Run Lost", color = Color.White)
+                Button(onClick = { state = GameReducer.reduce(state, GameAction.NewRun(state.seed)) }) { Text("Retry") }
             }
         }
     }
