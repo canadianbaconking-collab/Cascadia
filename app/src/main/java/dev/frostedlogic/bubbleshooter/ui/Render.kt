@@ -21,9 +21,6 @@ fun renderGame(canvas: DrawScope, state: GameState, aimAngleRad: Float) {
             val x = c * bubbleSize + if (r % 2 == 0) bubbleSize * 0.5f else bubbleSize
             val y = topPad + r * bubbleSize
             drawCircle(colorFor(code), radius = bubbleSize * 0.42f, center = Offset(x, y))
-            if (code == Grid.STONE) {
-                drawCircle(Color(0xFF9E9E9E), radius = bubbleSize * 0.18f, center = Offset(x, y))
-            }
         }
 
         val shooter = Offset(size.width / 2f, size.height - bubbleSize)
@@ -32,23 +29,17 @@ fun renderGame(canvas: DrawScope, state: GameState, aimAngleRad: Float) {
 
         val showAim = !state.boss.fogActive || state.boons.contains(BoonId.Sights)
         if (showAim) {
-            drawAimPath(shooter, aimAngleRad, size.height * 0.42f, 0)
-            if (state.boons.contains(BoonId.Sights)) {
-                drawAimPath(shooter, -aimAngleRad * 0.7f, size.height * 0.25f, 1)
-            }
+            val len = size.height * 0.5f
+            val end = Offset(
+                shooter.x + kotlin.math.sin(aimAngleRad) * len,
+                shooter.y - kotlin.math.cos(aimAngleRad) * len
+            )
+            drawLine(Color.White, shooter, end, strokeWidth = 4f)
+            drawCircle(Color.White.copy(alpha = 0.2f), radius = 8f, center = end, style = Stroke(2f))
         }
 
         drawRect(Color(0x22000000), topLeft = Offset.Zero, size = Size(size.width, 30f))
     }
-}
-
-private fun DrawScope.drawAimPath(start: Offset, angle: Float, length: Float, pass: Int) {
-    val end = Offset(
-        start.x + kotlin.math.sin(angle) * length,
-        start.y - kotlin.math.cos(angle) * length
-    )
-    drawLine(Color.White.copy(alpha = if (pass == 0) 1f else 0.6f), start, end, strokeWidth = if (pass == 0) 4f else 2f)
-    drawCircle(Color.White.copy(alpha = 0.2f), radius = 8f, center = end, style = Stroke(2f))
 }
 
 private fun colorFor(code: Int): Color = when (code) {
@@ -56,7 +47,6 @@ private fun colorFor(code: Int): Color = when (code) {
     Grid.GREEN -> Color(0xFF4CAF50)
     Grid.BLUE -> Color(0xFF4A90E2)
     Grid.GOAL -> Color(0xFFFFC107)
-    Grid.STONE -> Color(0xFF5D4037)
     else -> Color.Transparent
 }
 

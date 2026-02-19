@@ -23,7 +23,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
-import dev.frostedlogic.bubbleshooter.core.BoonId
 import dev.frostedlogic.bubbleshooter.core.GameAction
 import dev.frostedlogic.bubbleshooter.core.GameReducer
 import dev.frostedlogic.bubbleshooter.core.GameState
@@ -43,11 +42,10 @@ fun GameScreen() {
         ) {
             Text("Seed ${state.seed} • Room ${state.roomIndex}", color = Color.White)
             Text("Shots ${state.shotsLeft} • Goals ${Rooms.countGoals(state.grid)}", color = Color.White)
-            Text("Boons: ${state.boons.joinToString().ifBlank { "None" }}", color = Color.White)
             Canvas(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(500.dp)
+                    .height(520.dp)
                     .pointerInput(state.phase) {
                         detectDragGestures(
                             onDragStart = { pos ->
@@ -60,21 +58,13 @@ fun GameScreen() {
                                 val angle = computeAimAngle(origin, change.position)
                                 state = GameReducer.reduce(state, GameAction.AimChanged(angle))
                             },
-                            onDragEnd = { state = GameReducer.reduce(state, GameAction.Shoot) }
+                            onDragEnd = {
+                                state = GameReducer.reduce(state, GameAction.Shoot)
+                            }
                         )
                     }
             ) {
                 renderGame(this, state, state.aimAngleRad)
-            }
-
-            if (state.phase == Phase.Playing && state.boons.contains(BoonId.Paint)) {
-                Button(
-                    onClick = { state = GameReducer.reduce(state, GameAction.UsePaint) },
-                    enabled = !state.paintUsedThisRoom,
-                    modifier = Modifier.padding(top = 6.dp)
-                ) {
-                    Text(if (state.paintUsedThisRoom) "Paint Used" else "Use Paint")
-                }
             }
 
             if (state.phase == Phase.ChoosingBoon) {
@@ -86,11 +76,6 @@ fun GameScreen() {
                         }
                     }
                 }
-                if (state.pendingChoice?.canReroll == true) {
-                    Button(onClick = { state = GameReducer.reduce(state, GameAction.RerollBoons) }) {
-                        Text("Reroll choices (${state.rerollsLeft})")
-                    }
-                }
             }
 
             if (state.phase == Phase.WonRun || state.phase == Phase.LostRun) {
@@ -99,9 +84,8 @@ fun GameScreen() {
                     color = Color.White,
                     modifier = Modifier.padding(top = 8.dp)
                 )
-                Text("Seed ${state.seed}", color = Color.White)
                 Text("Rooms cleared ${state.roomsCleared} • Goals cleared ${state.goalsCleared}", color = Color.White)
-                Text("Boons taken: ${state.boons.joinToString()}", color = Color.White)
+                Text("Boons: ${state.boons.joinToString()}", color = Color.White)
                 Button(onClick = { state = GameReducer.reduce(state, GameAction.NewRun(state.seed + 1)) }) {
                     Text("New Seeded Run")
                 }

@@ -19,9 +19,7 @@ data class GameState(
     val roomsCleared: Int = 0,
     val goalsCleared: Int = 0,
     val paintAvailable: Boolean = false,
-    val shotsFired: Int = 0,
-    val rerollsLeft: Int = 1,
-    val paintUsedThisRoom: Boolean = false
+    val shotsFired: Int = 0
 ) {
     companion object {
         fun new(seed: Long): GameState {

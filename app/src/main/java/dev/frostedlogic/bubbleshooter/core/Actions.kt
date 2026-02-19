@@ -7,5 +7,4 @@ sealed interface GameAction {
     data object RerollBoons : GameAction
     data object NextRoom : GameAction
     data class NewRun(val seed: Long) : GameAction
-    data object UsePaint : GameAction
 }

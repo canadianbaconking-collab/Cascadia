@@ -12,7 +12,6 @@ object Grid {
     const val GREEN = 2
     const val BLUE = 3
     const val GOAL = 4
-    const val STONE = 5
 
     fun empty(rows: Int, cols: Int): GridState = GridState(rows, cols, IntArray(rows * cols) { EMPTY })
 
@@ -28,7 +27,7 @@ object Grid {
         return grid.copy(cells = copy)
     }
 
-    fun neighbors(r: Int, c: Int, rows: Int, cols: Int, staggered: Boolean = true): IntArray {
+    fun neighbors(r: Int, c: Int, rows: Int, cols: Int, staggered: Boolean): IntArray {
         val out = ArrayList<Int>(6)
         val evenRow = r % 2 == 0
         val offsets = if (!staggered) {
@@ -64,6 +63,4 @@ object Grid {
         BubbleColor.Blue -> BLUE
         BubbleColor.Goal -> GOAL
     }
-
-    fun isColorCode(code: Int): Boolean = code == RED || code == GREEN || code == BLUE || code == GOAL
 }

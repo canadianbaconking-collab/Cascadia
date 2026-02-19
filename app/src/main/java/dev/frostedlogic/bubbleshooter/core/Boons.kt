@@ -5,7 +5,7 @@ enum class BoonId { ShotsPlus, Sights, BombShot, Paint, Sticky }
 data class ChoiceState(val options: List<BoonId>, val canReroll: Boolean = false)
 
 object Boons {
-    fun offer(rng: RngState, owned: Set<BoonId>, canReroll: Boolean): Pair<RngState, ChoiceState> {
+    fun offer(rng: RngState, owned: Set<BoonId>): Pair<RngState, ChoiceState> {
         var state = rng
         val pool = BoonId.entries.filterNot { owned.contains(it) }.ifEmpty { BoonId.entries }
         val picks = mutableListOf<BoonId>()
@@ -15,11 +15,11 @@ object Boons {
             val choice = pool[idx]
             if (!picks.contains(choice)) picks += choice
         }
-        return state to ChoiceState(options = picks, canReroll = canReroll)
+        return state to ChoiceState(options = picks)
     }
 
     fun applyOnRoomStart(state: GameState): GameState {
-        var updated = state.copy(paintUsedThisRoom = false)
+        var updated = state
         if (state.boons.contains(BoonId.ShotsPlus)) updated = updated.copy(shotsLeft = updated.shotsLeft + 2)
         return updated
     }
