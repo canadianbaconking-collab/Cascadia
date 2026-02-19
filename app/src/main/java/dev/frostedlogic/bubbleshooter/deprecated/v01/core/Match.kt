@@ -1,4 +1,4 @@
-package dev.frostedlogic.bubbleshooter.core
+package dev.frostedlogic.bubbleshooter.deprecated.v01.core
 
 object Match {
     fun findCluster(grid: GridState, startIndex: Int, matchCode: Int): IntArray {

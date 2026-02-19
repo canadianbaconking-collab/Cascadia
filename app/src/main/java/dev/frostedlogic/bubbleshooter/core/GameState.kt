@@ -4,52 +4,40 @@ enum class Phase { Playing, ChoosingBoon, WonRun, LostRun }
 
 data class GameState(
     val seed: Long,
+    val rng: RngState,
     val phase: Phase,
     val roomIndex: Int,
-    val shotsLeft: Int,
-    val boons: List<BoonId>,
-    val grid: GridState,
-    val currentBubble: Bubble,
-    val nextBubble: Bubble,
-    val rng: RngState,
-    val boss: BossState,
-    val pendingChoice: ChoiceState?,
-    val lastEvents: List<GameEvent>,
-    val aimAngleRad: Float = 0f,
-    val roomsCleared: Int = 0,
-    val goalsCleared: Int = 0,
-    val paintCharges: Int = 0,
-    val shotsFired: Int = 0,
-    val combo: Int = 0,
-    val bestCombo: Int = 0,
-    val whiffStreak: Int = 0,
-    val rerollsLeft: Int = 1,
-    val runTicks: Int = 0,
-    val ttffTicks: Int? = null,
-    val replayPrompt: Boolean = false,
-    val lossReason: String? = null,
-    val goalsAtRoomStart: Int = 0,
-    val cycle: Int = 0,
-    val candidateBoard: List<String> = listOf("2 features", "1 polish", "complexity<=7", "risk<=7")
+    val player: Player,
+    val projectile: Projectile,
+    val balls: List<Ball>,
+    val boons: Set<BoonId>,
+    val offeredBoons: List<BoonId>,
+    val time: Float,
+    val shootCooldown: Float,
+    val shootTimer: Float,
+    val bossTimer: Float,
+    val lastEvents: List<GameEvent>
 ) {
     companion object {
         fun new(seed: Long): GameState {
             val rng = Rng.fromSeed(seed)
-            val init = GameState(
+            val initial = GameState(
                 seed = seed,
+                rng = rng,
                 phase = Phase.Playing,
                 roomIndex = 1,
-                shotsLeft = 12,
-                boons = emptyList(),
-                grid = Grid.empty(10, 8),
-                currentBubble = Bubble(BubbleColor.Red),
-                nextBubble = Bubble(BubbleColor.Green),
-                rng = rng,
-                boss = BossState(false),
-                pendingChoice = null,
+                player = Player(),
+                projectile = Projectile(),
+                balls = emptyList(),
+                boons = emptySet(),
+                offeredBoons = emptyList(),
+                time = 0f,
+                shootCooldown = 0.35f,
+                shootTimer = 0f,
+                bossTimer = Boss.IMPULSE_INTERVAL,
                 lastEvents = emptyList()
             )
-            return GameReducer.startRoom(init)
+            return GameReducer.startRoom(initial)
         }
     }
 }

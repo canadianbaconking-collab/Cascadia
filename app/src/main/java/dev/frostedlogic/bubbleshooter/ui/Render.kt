@@ -4,70 +4,39 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
-import dev.frostedlogic.bubbleshooter.core.BoonId
-import dev.frostedlogic.bubbleshooter.core.BubbleColor
 import dev.frostedlogic.bubbleshooter.core.GameState
-import dev.frostedlogic.bubbleshooter.core.Grid
+import dev.frostedlogic.bubbleshooter.core.World
 
-fun renderGame(canvas: DrawScope, state: GameState, aimAngleRad: Float) {
-    with(canvas) {
-        val bubbleSize = size.width / (state.grid.cols + 1)
-        val topPad = 40f
-        state.grid.cells.forEachIndexed { i, code ->
-            if (code == Grid.EMPTY) return@forEachIndexed
-            val r = i / state.grid.cols
-            val c = i % state.grid.cols
-            val x = c * bubbleSize + if (r % 2 == 0) bubbleSize * 0.5f else bubbleSize
-            val y = topPad + r * bubbleSize
-            drawCircle(colorFor(code), radius = bubbleSize * 0.42f, center = Offset(x, y))
-            if (code == Grid.STONE) {
-                drawCircle(Color.Black.copy(alpha = 0.45f), radius = bubbleSize * 0.2f, center = Offset(x, y))
-            }
-        }
+fun renderGame(scope: DrawScope, state: GameState) = with(scope) {
+    drawRect(Color(0xFF101626), size = size)
 
-        val shooter = Offset(size.width / 2f, size.height - bubbleSize)
-        drawCircle(colorForBubble(state.currentBubble.color), radius = bubbleSize * 0.45f, center = shooter)
-        drawCircle(colorForBubble(state.nextBubble.color), radius = bubbleSize * 0.28f, center = Offset(size.width - bubbleSize, size.height - bubbleSize))
+    val pX = state.player.x * size.width
+    val pY = state.player.y * size.height
+    drawCircle(Color(0xFF6EE7FF), radius = World.PLAYER_RADIUS * size.width, center = Offset(pX, pY))
 
-        val showAim = !state.boss.fogActive || state.boons.contains(BoonId.Sights)
-        if (showAim) {
-            val len = size.height * 0.5f
-            val end = Offset(
-                shooter.x + kotlin.math.sin(aimAngleRad) * len,
-                shooter.y - kotlin.math.cos(aimAngleRad) * len
-            )
-            drawLine(Color.White, shooter, end, strokeWidth = 4f)
-            if (state.boons.contains(BoonId.Sights)) {
-                val bounce = Offset(end.x.coerceIn(0f, size.width), end.y)
-                val second = Offset(bounce.x - (end.x - shooter.x) * 0.45f, (bounce.y - (end.y - shooter.y) * 0.45f))
-                drawLine(Color.White.copy(alpha = 0.55f), bounce, second, strokeWidth = 3f)
-            }
-            drawCircle(Color.White.copy(alpha = 0.2f), radius = 8f, center = end, style = Stroke(2f))
-        }
-
-        drawRect(Color(0x22000000), topLeft = Offset.Zero, size = Size(size.width, 30f))
+    if (state.projectile.active) {
+        val x = state.projectile.x * size.width
+        val y = state.projectile.y * size.height
+        drawLine(Color.White, Offset(x, y), Offset(x, y - 30f), strokeWidth = 4f)
     }
-}
 
-private fun colorFor(code: Int): Color = when (code) {
-    Grid.RED -> Color(0xFFD84A4A)
-    Grid.GREEN -> Color(0xFF4CAF50)
-    Grid.BLUE -> Color(0xFF4A90E2)
-    Grid.GOAL -> Color(0xFFFFC107)
-    Grid.YELLOW -> Color(0xFFFFEB3B)
-    Grid.PURPLE -> Color(0xFF9C27B0)
-    Grid.WILD -> Color(0xFFFFFFFF)
-    Grid.STONE -> Color(0xFF8D8D8D)
-    else -> Color.Transparent
-}
+    state.balls.forEach { ball ->
+        val alpha = if (state.roomIndex == 8) 0.55f else 1f
+        val color = when (ball.tier) {
+            3 -> Color(0xFFFF6B6B)
+            2 -> Color(0xFFFFD166)
+            else -> Color(0xFF95D5B2)
+        }.copy(alpha = alpha)
+        drawCircle(
+            color = color,
+            radius = ball.radius * size.width,
+            center = Offset(ball.x * size.width, ball.y * size.height)
+        )
+    }
 
-private fun colorForBubble(color: BubbleColor): Color = when (color) {
-    BubbleColor.Red -> Color(0xFFD84A4A)
-    BubbleColor.Green -> Color(0xFF4CAF50)
-    BubbleColor.Blue -> Color(0xFF4A90E2)
-    BubbleColor.Goal -> Color(0xFFFFC107)
-    BubbleColor.Yellow -> Color(0xFFFFEB3B)
-    BubbleColor.Purple -> Color(0xFF9C27B0)
-    BubbleColor.Wild -> Color.White
+    drawRect(
+        color = Color.Transparent,
+        topLeft = Offset.Zero,
+        size = Size(size.width, size.height),
+    )
 }
